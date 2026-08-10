@@ -150,20 +150,18 @@ def create_record(
 
 def get_market_key(row):
     """
-    کلید شناسایی وضعیت بازار.
+    کلید شناسایی وضعیت واقعی بازار.
 
-    اگر این مقادیر برای دلار و طلا یکسان باشند،
-    یعنی رکورد جدید از نظر بازار تکراری است.
+    تاریخ و ساعت Navasan در تشخیص تکراری بودن
+    دخالت داده نمی‌شوند.
+
+    فقط قیمت و مقدار تغییر دلار و طلای ۱۸ عیار
+    برای تشخیص تغییر بازار استفاده می‌شوند.
     """
 
     return (
-        row.get("usd_date", ""),
-        row.get("usd_time", ""),
         str(row.get("usd_value", "")),
         str(row.get("usd_change", "")),
-
-        row.get("gold_date", ""),
-        row.get("gold_time", ""),
         str(row.get("gold_18k_value", "")),
         str(row.get("gold_18k_change", "")),
     )
