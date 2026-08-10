@@ -49,7 +49,7 @@ def get_price(symbol):
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "price-monitor/2.0"
+            "User-Agent": "price-monitor/3.0"
         }
     )
 
@@ -95,171 +95,19 @@ def convert_to_tehran(utc_datetime):
     return utc_datetime.astimezone(tehran)
 
 
-def migrate_old_history():
-    """
-    اگر history.csv قدیمی باشد، آن را به ساختار جدید تبدیل می‌کند
-    و اطلاعات قبلی را حفظ می‌کند.
-    """
+def create_record(
+    collected_at_utc,
+    collected_at_tehran,
+    usd,
+    gold
+):
+    usd_value = to_number(usd.get("value"))
+    usd_change = to_number(usd.get("change"))
 
-    if not os.path.exists(HISTORY_FILE):
-        return
+    gold_value = to_number(gold.get("value"))
+    gold_change = to_number(gold.get("change"))
 
-    with open(
-        HISTORY_FILE,
-        "r",
-        newline="",
-        encoding="utf-8-sig"
-    ) as file:
-
-        reader = csv.DictReader(file)
-        old_rows = list(reader)
-        old_fields = reader.fieldnames or []
-
-    if old_fields == HISTORY_FIELDS:
-        return
-
-    new_rows = []
-
-    for row in old_rows:
-
-        usd_value = row.get("usd_value", "")
-        usd_change = row.get("usd_change", "")
-
-        gold_value = row.get("gold_18k_value", "")
-        gold_change = row.get("gold_18k_change", "")
-
-        collected_at_utc = row.get(
-            "collected_at_utc",
-            row.get("collected_at", "")
-        )
-
-        collected_at_tehran = ""
-
-        try:
-            if collected_at_utc:
-                dt = datetime.fromisoformat(
-                    collected_at_utc.replace("Z", "+00:00")
-                )
-
-                if dt.tzinfo is not None:
-                    collected_at_tehran = (
-                        convert_to_tehran(dt).isoformat()
-                    )
-
-        except Exception:
-            collected_at_tehran = ""
-
-        new_rows.append({
-            "collected_at_utc": collected_at_utc,
-            "collected_at_tehran": collected_at_tehran,
-
-            "usd_date": row.get("usd_date", ""),
-            "usd_time": row.get("usd_time", ""),
-            "usd_value": usd_value,
-            "usd_change": usd_change,
-
-            "usd_change_percent": calculate_percent(
-                usd_value,
-                usd_change
-            ),
-
-            "gold_date": row.get("gold_date", ""),
-            "gold_time": row.get("gold_time", ""),
-            "gold_18k_value": gold_value,
-            "gold_18k_change": gold_change,
-
-            "gold_18k_change_percent": calculate_percent(
-                gold_value,
-                gold_change
-            ),
-        })
-
-    with open(
-        HISTORY_FILE,
-        "w",
-        newline="",
-        encoding="utf-8-sig"
-    ) as file:
-
-        writer = csv.DictWriter(
-            file,
-            fieldnames=HISTORY_FIELDS
-        )
-
-        writer.writeheader()
-        writer.writerows(new_rows)
-
-
-def main():
-
-    # زمان دریافت
-    collected_at_utc_dt = datetime.now(timezone.utc)
-
-    collected_at_utc = collected_at_utc_dt.isoformat()
-
-    collected_at_tehran = (
-        convert_to_tehran(
-            collected_at_utc_dt
-        ).isoformat()
-    )
-
-    result = {
-        "collected_at": collected_at_utc,
-        "source": "navasan",
-        "prices": {}
-    }
-
-    # دریافت قیمت‌ها
-    for name, symbol in SYMBOLS.items():
-
-        data = get_price(symbol)
-
-        result["prices"][name] = data
-
-    # ایجاد پوشه data
-    os.makedirs("data", exist_ok=True)
-
-    # ذخیره آخرین اطلاعات
-    with open(
-        "data/latest.json",
-        "w",
-        encoding="utf-8"
-    ) as file:
-
-        json.dump(
-            result,
-            file,
-            ensure_ascii=False,
-            indent=2
-        )
-
-    # تبدیل history قدیمی به ساختار جدید
-    migrate_old_history()
-
-    # استخراج اطلاعات دلار
-    usd = result["prices"]["usd_sell"]["usd_sell"]
-
-    usd_value = to_number(
-        usd.get("value")
-    )
-
-    usd_change = to_number(
-        usd.get("change")
-    )
-
-    # استخراج اطلاعات طلا
-    gold = result["prices"]["gold_18k"]["18ayar"]
-
-    gold_value = to_number(
-        gold.get("value")
-    )
-
-    gold_change = to_number(
-        gold.get("change")
-    )
-
-    # ایجاد رکورد جدید
-    new_record = {
+    return {
         "collected_at_utc": collected_at_utc,
 
         "collected_at_tehran": collected_at_tehran,
@@ -299,7 +147,171 @@ def main():
         ),
     }
 
-    # اضافه کردن رکورد جدید
+
+def get_market_key(row):
+    """
+    کلید شناسایی وضعیت بازار.
+
+    اگر این مقادیر برای دلار و طلا یکسان باشند،
+    یعنی رکورد جدید از نظر بازار تکراری است.
+    """
+
+    return (
+        row.get("usd_date", ""),
+        row.get("usd_time", ""),
+        str(row.get("usd_value", "")),
+        str(row.get("usd_change", "")),
+
+        row.get("gold_date", ""),
+        row.get("gold_time", ""),
+        str(row.get("gold_18k_value", "")),
+        str(row.get("gold_18k_change", "")),
+    )
+
+
+def clean_history():
+    """
+    تاریخچه موجود را می‌خواند،
+    رکوردهای تکراری را حذف می‌کند
+    و با ساختار جدید ذخیره می‌کند.
+    """
+
+    if not os.path.exists(HISTORY_FILE):
+        return []
+
+    with open(
+        HISTORY_FILE,
+        "r",
+        newline="",
+        encoding="utf-8-sig"
+    ) as file:
+
+        reader = csv.DictReader(file)
+        rows = list(reader)
+
+    cleaned_rows = []
+    seen = set()
+
+    for row in rows:
+
+        key = get_market_key(row)
+
+        if key in seen:
+            continue
+
+        seen.add(key)
+
+        usd_value = row.get("usd_value", "")
+        usd_change = row.get("usd_change", "")
+
+        gold_value = row.get("gold_18k_value", "")
+        gold_change = row.get("gold_18k_change", "")
+
+        collected_at_utc = row.get(
+            "collected_at_utc",
+            row.get("collected_at", "")
+        )
+
+        collected_at_tehran = row.get(
+            "collected_at_tehran",
+            ""
+        )
+
+        # تبدیل زمان قدیمی به تهران در صورت امکان
+        if not collected_at_tehran and collected_at_utc:
+
+            try:
+                dt = datetime.fromisoformat(
+                    collected_at_utc.replace("Z", "+00:00")
+                )
+
+                if dt.tzinfo is not None:
+                    collected_at_tehran = (
+                        convert_to_tehran(dt).isoformat()
+                    )
+
+            except Exception:
+                pass
+
+        cleaned_rows.append({
+            "collected_at_utc": collected_at_utc,
+
+            "collected_at_tehran": collected_at_tehran,
+
+            "usd_date": row.get("usd_date", ""),
+
+            "usd_time": row.get("usd_time", ""),
+
+            "usd_value": usd_value,
+
+            "usd_change": usd_change,
+
+            "usd_change_percent": (
+                row.get("usd_change_percent")
+                or calculate_percent(
+                    usd_value,
+                    usd_change
+                )
+            ),
+
+            "gold_date": row.get("gold_date", ""),
+
+            "gold_time": row.get("gold_time", ""),
+
+            "gold_18k_value": gold_value,
+
+            "gold_18k_change": gold_change,
+
+            "gold_18k_change_percent": (
+                row.get("gold_18k_change_percent")
+                or calculate_percent(
+                    gold_value,
+                    gold_change
+                )
+            ),
+        })
+
+    # ذخیره تاریخچه پاک‌سازی‌شده
+    with open(
+        HISTORY_FILE,
+        "w",
+        newline="",
+        encoding="utf-8-sig"
+    ) as file:
+
+        writer = csv.DictWriter(
+            file,
+            fieldnames=HISTORY_FIELDS
+        )
+
+        writer.writeheader()
+        writer.writerows(cleaned_rows)
+
+    return cleaned_rows
+
+
+def append_if_changed(new_record, existing_rows):
+    """
+    فقط زمانی رکورد جدید اضافه می‌شود
+    که وضعیت بازار نسبت به آخرین رکورد تغییر کرده باشد.
+    """
+
+    if existing_rows:
+
+        last_record = existing_rows[-1]
+
+        old_key = get_market_key(last_record)
+        new_key = get_market_key(new_record)
+
+        if old_key == new_key:
+
+            print(
+                "Market data has not changed. "
+                "No new history record added."
+            )
+
+            return False
+
     with open(
         HISTORY_FILE,
         "a",
@@ -312,13 +324,79 @@ def main():
             fieldnames=HISTORY_FIELDS
         )
 
-        # اگر فایل خالی بود Header ایجاد شود
-        if file.tell() == 0:
-            writer.writeheader()
-
         writer.writerow(new_record)
 
-    print("Price update completed successfully.")
+    print("New market record added to history.")
+
+    return True
+
+
+def main():
+
+    # زمان دریافت
+    collected_at_utc_dt = datetime.now(timezone.utc)
+
+    collected_at_utc = (
+        collected_at_utc_dt.isoformat()
+    )
+
+    collected_at_tehran = (
+        convert_to_tehran(
+            collected_at_utc_dt
+        ).isoformat()
+    )
+
+    # دریافت اطلاعات Navasan
+    result = {
+        "collected_at": collected_at_utc,
+        "source": "navasan",
+        "prices": {}
+    }
+
+    for name, symbol in SYMBOLS.items():
+
+        data = get_price(symbol)
+
+        result["prices"][name] = data
+
+    # ایجاد پوشه data
+    os.makedirs("data", exist_ok=True)
+
+    # ذخیره آخرین قیمت
+    with open(
+        "data/latest.json",
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            result,
+            file,
+            ensure_ascii=False,
+            indent=2
+        )
+
+    # پاک‌سازی و آماده‌سازی تاریخچه
+    existing_rows = clean_history()
+
+    # استخراج قیمت‌ها
+    usd = result["prices"]["usd_sell"]["usd_sell"]
+
+    gold = result["prices"]["gold_18k"]["18ayar"]
+
+    # ساخت رکورد جدید
+    new_record = create_record(
+        collected_at_utc,
+        collected_at_tehran,
+        usd,
+        gold
+    )
+
+    # فقط در صورت تغییر بازار، رکورد ثبت می‌شود
+    append_if_changed(
+        new_record,
+        existing_rows
+    )
 
     print(
         json.dumps(
