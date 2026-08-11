@@ -2,9 +2,10 @@ name: Update Navasan Prices
 
 on:
   workflow_dispatch:
-
   schedule:
-    - cron: "0 */8 * * *"
+    - cron: "30 7 * * *"
+    - cron: "30 11 * * *"
+    - cron: "30 15 * * *"
 
 permissions:
   contents: write
