@@ -3,9 +3,12 @@ name: Update Navasan Prices
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 7 * * *"
-    - cron: "30 11 * * *"
-    - cron: "30 15 * * *"
+  - cron: "0 11 * * *"
+    timezone: "Asia/Tehran"
+  - cron: "0 15 * * *"
+    timezone: "Asia/Tehran"
+  - cron: "0 19 * * *"
+    timezone: "Asia/Tehran"
 
 permissions:
   contents: write
