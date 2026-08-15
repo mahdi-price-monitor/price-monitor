@@ -38,6 +38,10 @@ jobs:
         run: |
           python src/fetch_gold_funds.py
 
+      - name: Normalize gold fund data
+        run: |
+          python src/normalize_gold_funds.py
+
       - name: Append gold fund history
         run: |
           python src/update_gold_funds_history.py
