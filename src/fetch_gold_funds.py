@@ -1,7 +1,6 @@
 import csv
 import json
 import os
-import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
@@ -66,10 +65,9 @@ def percent(change, yesterday):
 
 
 def is_gold_fund(item):
-    text = " ".join(
-        str(first(item, "lVal18AFC", "symbol", "symbolName", "lVal18", "")),
-        str(first(item, "lVal30", "name", "fundName", "instrumentName", "")),
-    )
+    symbol = str(first(item, "lVal18AFC", "symbol", "symbolName", "lVal18"))
+    name = str(first(item, "lVal30", "name", "fundName", "instrumentName"))
+    text = f"{symbol} {name}"
     return any(keyword in text for keyword in GOLD_KEYWORDS)
 
 
