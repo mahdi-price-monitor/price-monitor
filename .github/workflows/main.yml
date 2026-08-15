@@ -34,12 +34,24 @@ jobs:
         run: |
           python src/fetch_prices.py
 
+      - name: Get gold fund prices from TSETMC
+        run: |
+          python src/fetch_gold_funds.py
+
+      - name: Normalize gold fund data
+        run: |
+          python src/normalize_gold_funds.py
+
+      - name: Append gold fund history
+        run: |
+          python src/update_gold_funds_history.py
+
       - name: Save updated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/latest.json data/history.csv
+          git add data/latest.json data/history.csv data/gold_funds.csv data/gold_funds_history.csv
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
