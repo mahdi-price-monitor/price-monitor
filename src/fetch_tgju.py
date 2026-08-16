@@ -1,17 +1,60 @@
 import csv
 import json
 import os
-import re
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
-BASE_URL = "https://www.tgju.org/profile/price_dollar_rl"
 SOURCE = "tgju"
-SYMBOL = "usd"
-HISTORY_FILE = "data/tgju_history.csv"
-LATEST_FILE = "data/tgju_latest.json"
+HISTORY_FILE = "data/tgju_market_history.csv"
+LATEST_FILE = "data/tgju_market_latest.csv"
+LATEST_JSON_FILE = "data/tgju_market_latest.json"
+
+MARKETS = [
+    {
+        "symbol": "usd",
+        "name": "دلار",
+        "url": "https://www.tgju.org/profile/price_dollar_rl",
+        "market": "free",
+    },
+    {
+        "symbol": "gold18",
+        "name": "طلای 18 عیار",
+        "url": "https://www.tgju.org/profile/geram18",
+        "market": "domestic",
+    },
+    {
+        "symbol": "sekee",
+        "name": "سکه امامی",
+        "url": "https://www.tgju.org/profile/sekee",
+        "market": "domestic",
+    },
+    {
+        "symbol": "sekeb",
+        "name": "سکه بهار آزادی",
+        "url": "https://www.tgju.org/profile/sekeb",
+        "market": "domestic",
+    },
+    {
+        "symbol": "nim",
+        "name": "نیم سکه",
+        "url": "https://www.tgju.org/profile/nim",
+        "market": "domestic",
+    },
+    {
+        "symbol": "rob",
+        "name": "ربع سکه",
+        "url": "https://www.tgju.org/profile/rob",
+        "market": "domestic",
+    },
+    {
+        "symbol": "gerami",
+        "name": "سکه گرمی",
+        "url": "https://www.tgju.org/profile/gerami",
+        "market": "domestic",
+    },
+]
 
 
 class TableParser(HTMLParser):
@@ -51,9 +94,9 @@ def normalize_digits(value):
         return ""
     table = str.maketrans(
         "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩",
-        "01234567890123456789"
+        "01234567890123456789",
     )
-    return value.translate(table)
+    return str(value).translate(table)
 
 
 def clean_value(value):
@@ -74,9 +117,9 @@ def to_number(value):
         return None
 
 
-def fetch_page():
+def fetch_page(url):
     request = Request(
-        BASE_URL,
+        url,
         headers={
             "User-Agent": "Mozilla/5.0 (compatible; price-monitor/1.0)"
         },
@@ -85,7 +128,7 @@ def fetch_page():
         return response.read().decode("utf-8", errors="replace")
 
 
-def extract_market_snapshot(html):
+def extract_fields(html):
     parser = TableParser()
     parser.feed(html)
 
@@ -102,12 +145,22 @@ def extract_market_snapshot(html):
         if len(row) < 2:
             continue
         label = row[0].strip()
+        value = row[1].strip()
         for key, field in wanted.items():
             if label == key or label.startswith(key):
-                fields[field] = clean_value(row[1])
+                fields[field] = clean_value(value)
+
+    return fields
+
+
+def build_record(market):
+    html = fetch_page(market["url"])
+    fields = extract_fields(html)
 
     if "last_price" not in fields:
-        raise RuntimeError("TGJU dollar page: current price was not found.")
+        raise RuntimeError(
+            f"TGJU {market['symbol']}: current price was not found at {market['url']}"
+        )
 
     now_utc = datetime.now(timezone.utc)
     now_tehran = now_utc.astimezone(ZoneInfo("Asia/Tehran"))
@@ -116,53 +169,108 @@ def extract_market_snapshot(html):
         "collected_at_utc": now_utc.isoformat(),
         "collected_at_tehran": now_tehran.isoformat(),
         "source": SOURCE,
-        "symbol": SYMBOL,
-        "market": "free",
+        "symbol": market["symbol"],
+        "asset_name": market["name"],
+        "market": market["market"],
         "last_price": to_number(fields.get("last_price")),
         "yesterday_price": to_number(fields.get("yesterday_price")),
         "price_change": to_number(fields.get("price_change")),
         "price_change_percent": to_number(fields.get("price_change_percent")),
         "source_last_update": fields.get("last_update", ""),
-        "source_url": BASE_URL,
+        "source_url": market["url"],
     }
 
 
-def append_if_changed(record):
+def write_latest(records):
     os.makedirs("data", exist_ok=True)
-    fields = list(record.keys())
-    rows = []
+    fields = list(records[0].keys())
+
+    with open(LATEST_FILE, "w", newline="", encoding="utf-8-sig") as file:
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(records)
+
+    with open(LATEST_JSON_FILE, "w", encoding="utf-8") as file:
+        json.dump(records, file, ensure_ascii=False, indent=2)
+
+
+def append_changed_records(records):
+    os.makedirs("data", exist_ok=True)
+    existing = []
 
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r", newline="", encoding="utf-8-sig") as file:
-            rows = list(csv.DictReader(file))
+            existing = list(csv.DictReader(file))
 
-    if rows:
-        last = rows[-1]
-        comparable = ["last_price", "yesterday_price", "price_change", "price_change_percent"]
-        if all(str(last.get(k, "")) == str(record.get(k, "")) for k in comparable):
-            print("TGJU dollar data has not changed. No new history row added.")
-            return False
+    last_by_symbol = {}
+    for row in existing:
+        last_by_symbol[row.get("symbol", "")] = row
+
+    fields = list(records[0].keys())
+    changed_count = 0
 
     file_exists = os.path.exists(HISTORY_FILE)
     with open(HISTORY_FILE, "a", newline="", encoding="utf-8-sig") as file:
         writer = csv.DictWriter(file, fieldnames=fields)
         if not file_exists:
             writer.writeheader()
-        writer.writerow(record)
 
-    return True
+        comparable = [
+            "last_price",
+            "yesterday_price",
+            "price_change",
+            "price_change_percent",
+        ]
+
+        for record in records:
+            previous = last_by_symbol.get(record["symbol"])
+            if previous and all(
+                str(previous.get(key, "")) == str(record.get(key, ""))
+                for key in comparable
+            ):
+                print(f"{record['symbol']}: unchanged")
+                continue
+
+            writer.writerow(record)
+            changed_count += 1
+            print(f"{record['symbol']}: history updated")
+
+    return changed_count
 
 
 def main():
-    html = fetch_page()
-    record = extract_market_snapshot(html)
+    records = []
 
-    os.makedirs("data", exist_ok=True)
-    with open(LATEST_FILE, "w", encoding="utf-8") as file:
-        json.dump(record, file, ensure_ascii=False, indent=2)
+    for market in MARKETS:
+        print(f"Fetching {market['name']} ({market['symbol']}) ...")
+        try:
+            record = build_record(market)
+            records.append(record)
+            print(
+                f"  price={record['last_price']} "
+                f"change={record['price_change']} "
+                f"percent={record['price_change_percent']}"
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to fetch {market['symbol']} from TGJU: {exc}"
+            ) from exc
 
-    changed = append_if_changed(record)
-    print(json.dumps({"changed": changed, "record": record}, ensure_ascii=False, indent=2))
+    write_latest(records)
+    changed_count = append_changed_records(records)
+
+    print(
+        json.dumps(
+            {
+                "symbols": len(records),
+                "changed_history_rows": changed_count,
+                "latest_file": LATEST_FILE,
+                "history_file": HISTORY_FILE,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
 
 
 if __name__ == "__main__":
