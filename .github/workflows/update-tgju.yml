@@ -30,12 +30,16 @@ jobs:
         run: |
           python src/fetch_tgju.py
 
+      - name: Build TGJU dashboard output
+        run: |
+          python src/build_tgju_dashboard.py
+
       - name: Save updated TGJU data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/tgju_market_latest.csv data/tgju_market_latest.json data/tgju_market_history.csv
+          git add data/tgju_market_latest.csv data/tgju_market_latest.json data/tgju_market_history.csv data/tgju_dashboard.csv
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
