@@ -1,13 +1,20 @@
-name: Test TGJU Market Prices
+name: Update TGJU Market Prices
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 11 * * *"
+      timezone: "Asia/Tehran"
+    - cron: "0 15 * * *"
+      timezone: "Asia/Tehran"
+    - cron: "0 19 * * *"
+      timezone: "Asia/Tehran"
 
 permissions:
   contents: write
 
 jobs:
-  test-tgju:
+  update-tgju:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,7 +30,7 @@ jobs:
         run: |
           python src/fetch_tgju.py
 
-      - name: Save TGJU test data
+      - name: Save updated TGJU data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -33,6 +40,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Test TGJU market prices"
+            git commit -m "Update TGJU market prices"
             git push
           fi
