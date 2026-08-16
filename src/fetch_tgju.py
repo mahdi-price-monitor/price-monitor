@@ -128,9 +128,6 @@ def extract_fields(html, market=None):
 
     text = extract_plain_text(html)
 
-    # TGJU can return signed changes (for example -5,000 or -0.27%).
-    # The previous parser accepted only unsigned numbers, which caused the
-    # change columns to become empty whenever the market moved down.
     numeric_patterns = {
         "last_price": r"نرخ\s*فعلی\s*[:：]*\s*([0-9][0-9,٬]*)",
         "yesterday_price": r"نرخ\s*روز\s*گذشته\s*[:：|]*\s*([0-9][0-9,٬]*)",
@@ -160,26 +157,21 @@ def extract_fields(html, market=None):
     if update_match:
         fields["last_update"] = clean_value(update_match.group(1))
 
-    # If TGJU exposes yesterday's price but omits the explicit change fields,
-    # calculate them from the two prices so the dashboard never loses these
-    # columns just because the page layout changed.
-    if "price_change" not in fields:
-        current = to_number(fields.get("last_price"))
-        yesterday = to_number(fields.get("yesterday_price"))
-        if current is not None and yesterday is not None:
-            fields["price_change"] = str(current - yesterday)
+    # TGJU sometimes emits the change fields as empty strings. Treat an empty
+    # field as missing, then calculate it from current and previous prices.
+    current = to_number(fields.get("last_price"))
+    yesterday = to_number(fields.get("yesterday_price"))
 
-    if "price_change_percent" not in fields:
-        current = to_number(fields.get("last_price"))
-        yesterday = to_number(fields.get("yesterday_price"))
-        if current is not None and yesterday not in (None, 0):
-            fields["price_change_percent"] = str(round(((current - yesterday) / yesterday) * 100, 4))
+    if to_number(fields.get("price_change")) is None and current is not None and yesterday is not None:
+        fields["price_change"] = str(current - yesterday)
+
+    if to_number(fields.get("price_change_percent")) is None and current is not None and yesterday not in (None, 0):
+        fields["price_change_percent"] = str(round(((current - yesterday) / yesterday) * 100, 4))
 
     return fields
 
 
 def extract_home_market_fields(html, market):
-    """Fallback for profile pages whose quote block is not exposed to urllib."""
     parser = TableParser()
     parser.feed(html)
     target = market["name"]
@@ -213,9 +205,6 @@ def build_record(market):
     html = fetch_page(market["url"])
     fields = extract_fields(html, market)
 
-    # TGJU's نیم سکه profile intermittently serves a different quote block to
-    # non-browser clients. The site's homepage exposes the same market quote in
-    # a stable table, so use it only as a fallback when the profile has no price.
     if "last_price" not in fields:
         print(f"  profile quote not found; using TGJU homepage fallback for {market['symbol']}")
         home_html = fetch_page("https://www.tgju.org/home")
