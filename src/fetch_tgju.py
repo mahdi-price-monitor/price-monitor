@@ -128,8 +128,6 @@ def extract_fields(html, market=None):
 
     text = extract_plain_text(html)
 
-    # TGJU may render the labels as plain text with one, two, or no literal
-    # colon characters, depending on the page/template version.
     numeric_patterns = {
         "last_price": r"نرخ\s*فعلی\s*[:：]*\s*([0-9][0-9,٬]*)",
         "yesterday_price": r"نرخ\s*روز\s*گذشته\s*[:：]*\s*([0-9][0-9,٬]*)",
@@ -142,21 +140,11 @@ def extract_fields(html, market=None):
         if match:
             fields[field] = clean_value(match.group(1))
 
-    # Robust fallback for TGJU quote headers such as:
-    # "نرخ فعلی:: 945,000,000 1.59"
-    # The old parser was too dependent on the exact number of colons.
     if "last_price" not in fields:
-        match = re.search(
-            r"نرخ\s*فعلی\D*([0-9][0-9,٬]*)",
-            text,
-            flags=re.I,
-        )
+        match = re.search(r"نرخ\s*فعلی\D*([0-9][0-9,٬]*)", text, flags=re.I)
         if match:
             fields["last_price"] = clean_value(match.group(1))
 
-    # Final page-template fallback: locate the first current-rate occurrence
-    # and inspect a short window after it. This avoids depending on HTML table
-    # structure, which TGJU changes from time to time.
     if "last_price" not in fields:
         marker = re.search(r"نرخ\s*فعلی", text, flags=re.I)
         if marker:
@@ -172,9 +160,51 @@ def extract_fields(html, market=None):
     return fields
 
 
+def extract_home_market_fields(html, market):
+    """Fallback for profile pages whose quote block is not exposed to urllib."""
+    parser = TableParser()
+    parser.feed(html)
+    target = market["name"]
+
+    for row in parser.rows:
+        if not row:
+            continue
+        label = normalize_digits(row[0]).strip()
+        if label != target:
+            continue
+
+        fields = {}
+        if len(row) >= 2:
+            fields["last_price"] = clean_value(row[1])
+        if len(row) >= 3:
+            change_text = clean_value(row[2])
+            pct = re.search(r"\(([+-]?[0-9]+(?:\.[0-9]+)?)%\)", change_text)
+            amount = re.search(r"([0-9][0-9,٬]*)\s*$", change_text)
+            if pct:
+                fields["price_change_percent"] = pct.group(1)
+            if amount:
+                fields["price_change"] = amount.group(1)
+        if len(row) >= 6:
+            fields["last_update"] = clean_value(row[5])
+        return fields
+
+    return {}
+
+
 def build_record(market):
     html = fetch_page(market["url"])
     fields = extract_fields(html, market)
+
+    # TGJU's نیم سکه profile intermittently serves a different quote block to
+    # non-browser clients. The site's homepage exposes the same market quote in
+    # a stable table, so use it only as a fallback when the profile has no price.
+    if "last_price" not in fields:
+        print(f"  profile quote not found; using TGJU homepage fallback for {market['symbol']}")
+        home_html = fetch_page("https://www.tgju.org/home")
+        home_fields = extract_home_market_fields(home_html, market)
+        for key, value in home_fields.items():
+            if value not in (None, ""):
+                fields.setdefault(key, value)
 
     if "last_price" not in fields:
         raise RuntimeError(f"TGJU {market['symbol']}: current price was not found at {market['url']}")
