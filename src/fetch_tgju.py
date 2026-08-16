@@ -1,8 +1,9 @@
 import csv
 import json
 import os
+import re
 from datetime import datetime, timezone
-from html.parser import HTMLParser
+from html import HTMLParser, unescape
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
@@ -12,48 +13,13 @@ LATEST_FILE = "data/tgju_market_latest.csv"
 LATEST_JSON_FILE = "data/tgju_market_latest.json"
 
 MARKETS = [
-    {
-        "symbol": "usd",
-        "name": "دلار",
-        "url": "https://www.tgju.org/profile/price_dollar_rl",
-        "market": "free",
-    },
-    {
-        "symbol": "gold18",
-        "name": "طلای 18 عیار",
-        "url": "https://www.tgju.org/profile/geram18",
-        "market": "domestic",
-    },
-    {
-        "symbol": "sekee",
-        "name": "سکه امامی",
-        "url": "https://www.tgju.org/profile/sekee",
-        "market": "domestic",
-    },
-    {
-        "symbol": "sekeb",
-        "name": "سکه بهار آزادی",
-        "url": "https://www.tgju.org/profile/sekeb",
-        "market": "domestic",
-    },
-    {
-        "symbol": "nim",
-        "name": "نیم سکه",
-        "url": "https://www.tgju.org/profile/nim",
-        "market": "domestic",
-    },
-    {
-        "symbol": "rob",
-        "name": "ربع سکه",
-        "url": "https://www.tgju.org/profile/rob",
-        "market": "domestic",
-    },
-    {
-        "symbol": "gerami",
-        "name": "سکه گرمی",
-        "url": "https://www.tgju.org/profile/gerami",
-        "market": "domestic",
-    },
+    {"symbol": "usd", "name": "دلار", "url": "https://www.tgju.org/profile/price_dollar_rl", "market": "free"},
+    {"symbol": "gold18", "name": "طلای 18 عیار", "url": "https://www.tgju.org/profile/geram18", "market": "domestic"},
+    {"symbol": "sekee", "name": "سکه امامی", "url": "https://www.tgju.org/profile/sekee", "market": "domestic"},
+    {"symbol": "sekeb", "name": "سکه بهار آزادی", "url": "https://www.tgju.org/profile/sekeb", "market": "domestic"},
+    {"symbol": "nim", "name": "نیم سکه", "url": "https://www.tgju.org/profile/nim", "market": "domestic"},
+    {"symbol": "rob", "name": "ربع سکه", "url": "https://www.tgju.org/profile/rob", "market": "domestic"},
+    {"symbol": "gerami", "name": "سکه گرمی", "url": "https://www.tgju.org/profile/gerami", "market": "domestic"},
 ]
 
 
@@ -92,10 +58,7 @@ class TableParser(HTMLParser):
 def normalize_digits(value):
     if value is None:
         return ""
-    table = str.maketrans(
-        "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩",
-        "01234567890123456789",
-    )
+    table = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
     return str(value).translate(table)
 
 
@@ -118,12 +81,7 @@ def to_number(value):
 
 
 def fetch_page(url):
-    request = Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 (compatible; price-monitor/1.0)"
-        },
-    )
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; price-monitor/1.0)"})
     with urlopen(request, timeout=30) as response:
         return response.read().decode("utf-8", errors="replace")
 
@@ -150,6 +108,24 @@ def extract_fields(html):
             if label == key or label.startswith(key):
                 fields[field] = clean_value(value)
 
+    # TGJU pages are not completely uniform. Some market pages expose
+    # the key values outside HTML tables, so use a text fallback.
+    if "last_price" not in fields or "yesterday_price" not in fields:
+        text = unescape(re.sub(r"<[^>]+>", " ", html))
+        text = " ".join(text.split())
+        fallback_patterns = {
+            "last_price": r"نرخ\s*فعلی\s*:+\s*([۰-۹٠-٩0-9][۰-۹٠-٩0-9,٬]*)",
+            "yesterday_price": r"نرخ\s*روز\s*گذشته\s*:+\s*([۰-۹٠-٩0-9][۰-۹٠-٩0-9,٬]*)",
+            "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([۰-۹٠-٩0-9.,٬]+)\s*%?",
+            "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([۰-۹٠-٩0-9,٬]+)",
+            "last_update": r"زمان\s*ثبت\s*آخرین\s*نرخ\s*:+\s*([^|]{1,30})",
+        }
+        for field, pattern in fallback_patterns.items():
+            if field not in fields:
+                match = re.search(pattern, text)
+                if match:
+                    fields[field] = clean_value(match.group(1))
+
     return fields
 
 
@@ -158,9 +134,7 @@ def build_record(market):
     fields = extract_fields(html)
 
     if "last_price" not in fields:
-        raise RuntimeError(
-            f"TGJU {market['symbol']}: current price was not found at {market['url']}"
-        )
+        raise RuntimeError(f"TGJU {market['symbol']}: current price was not found at {market['url']}")
 
     now_utc = datetime.now(timezone.utc)
     now_tehran = now_utc.astimezone(ZoneInfo("Asia/Tehran"))
@@ -184,12 +158,10 @@ def build_record(market):
 def write_latest(records):
     os.makedirs("data", exist_ok=True)
     fields = list(records[0].keys())
-
     with open(LATEST_FILE, "w", newline="", encoding="utf-8-sig") as file:
         writer = csv.DictWriter(file, fieldnames=fields)
         writer.writeheader()
         writer.writerows(records)
-
     with open(LATEST_JSON_FILE, "w", encoding="utf-8") as file:
         json.dump(records, file, ensure_ascii=False, indent=2)
 
@@ -197,7 +169,6 @@ def write_latest(records):
 def append_changed_records(records):
     os.makedirs("data", exist_ok=True)
     existing = []
-
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r", newline="", encoding="utf-8-sig") as file:
             existing = list(csv.DictReader(file))
@@ -208,29 +179,18 @@ def append_changed_records(records):
 
     fields = list(records[0].keys())
     changed_count = 0
-
     file_exists = os.path.exists(HISTORY_FILE)
     with open(HISTORY_FILE, "a", newline="", encoding="utf-8-sig") as file:
         writer = csv.DictWriter(file, fieldnames=fields)
         if not file_exists:
             writer.writeheader()
 
-        comparable = [
-            "last_price",
-            "yesterday_price",
-            "price_change",
-            "price_change_percent",
-        ]
-
+        comparable = ["last_price", "yesterday_price", "price_change", "price_change_percent"]
         for record in records:
             previous = last_by_symbol.get(record["symbol"])
-            if previous and all(
-                str(previous.get(key, "")) == str(record.get(key, ""))
-                for key in comparable
-            ):
+            if previous and all(str(previous.get(key, "")) == str(record.get(key, "")) for key in comparable):
                 print(f"{record['symbol']}: unchanged")
                 continue
-
             writer.writerow(record)
             changed_count += 1
             print(f"{record['symbol']}: history updated")
@@ -240,37 +200,18 @@ def append_changed_records(records):
 
 def main():
     records = []
-
     for market in MARKETS:
         print(f"Fetching {market['name']} ({market['symbol']}) ...")
         try:
             record = build_record(market)
             records.append(record)
-            print(
-                f"  price={record['last_price']} "
-                f"change={record['price_change']} "
-                f"percent={record['price_change_percent']}"
-            )
+            print(f"  price={record['last_price']} change={record['price_change']} percent={record['price_change_percent']}")
         except Exception as exc:
-            raise RuntimeError(
-                f"Failed to fetch {market['symbol']} from TGJU: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to fetch {market['symbol']} from TGJU: {exc}") from exc
 
     write_latest(records)
     changed_count = append_changed_records(records)
-
-    print(
-        json.dumps(
-            {
-                "symbols": len(records),
-                "changed_history_rows": changed_count,
-                "latest_file": LATEST_FILE,
-                "history_file": HISTORY_FILE,
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+    print(json.dumps({"symbols": len(records), "changed_history_rows": changed_count, "latest_file": LATEST_FILE, "history_file": HISTORY_FILE}, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
