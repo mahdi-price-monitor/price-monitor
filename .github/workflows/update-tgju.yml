@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Get dollar price from TGJU
+      - name: Get market prices from TGJU
         run: |
           python src/fetch_tgju.py
 
@@ -28,11 +28,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/tgju_latest.json data/tgju_history.csv
+          git add data/tgju_market_latest.csv data/tgju_market_latest.json data/tgju_market_history.csv
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Test TGJU dollar price"
+            git commit -m "Test TGJU market prices"
             git push
           fi
