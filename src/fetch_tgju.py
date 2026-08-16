@@ -130,10 +130,11 @@ def extract_fields(html):
     text = extract_plain_text(html)
 
     numeric_patterns = {
-        "last_price": r"نرخ\s*فعلی\s*: *([0-9][0-9,٬]*)",
-        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*: *([0-9][0-9,٬]*)",
-        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*: *([0-9]+(?:[.,][0-9]+)?)\s*%?",
-        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*: *([0-9][0-9,٬]*)",
+        # TGJU currently renders this label as "نرخ فعلی::" on some pages.
+        "last_price": r"نرخ\s*فعلی\s*:+\s*([0-9][0-9,٬]*)",
+        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*:+\s*([0-9][0-9,٬]*)",
+        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([0-9]+(?:[.,][0-9]+)?)\s*%?",
+        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([0-9][0-9,٬]*)",
     }
 
     for field, pattern in numeric_patterns.items():
@@ -141,7 +142,7 @@ def extract_fields(html):
         if match:
             fields[field] = clean_value(match.group(1))
 
-    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*: *([0-9۰-۹٠-٩:]+)", text)
+    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*:+\s*([0-9۰-۹٠-٩:]+)", text)
     if update_match:
         fields["last_update"] = clean_value(update_match.group(1))
 
