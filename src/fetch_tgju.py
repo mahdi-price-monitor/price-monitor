@@ -157,8 +157,6 @@ def extract_fields(html, market=None):
     if update_match:
         fields["last_update"] = clean_value(update_match.group(1))
 
-    # TGJU sometimes emits the change fields as empty strings. Treat an empty
-    # field as missing, then calculate it from current and previous prices.
     current = to_number(fields.get("last_price"))
     yesterday = to_number(fields.get("yesterday_price"))
 
@@ -176,11 +174,22 @@ def extract_home_market_fields(html, market):
     parser.feed(html)
     target = market["name"]
 
+    aliases = {
+        "gold18": ["طلای 18 عیار", "طلا ۱۸"],
+        "usd": ["دلار"],
+        "sekee": ["سکه امامی"],
+        "sekeb": ["سکه بهار آزادی"],
+        "nim": ["نیم سکه"],
+        "rob": ["ربع سکه"],
+        "gerami": ["سکه گرمی"],
+    }
+    targets = aliases.get(market["symbol"], [target])
+
     for row in parser.rows:
         if not row:
             continue
         label = normalize_digits(row[0]).strip()
-        if label != target:
+        if label not in targets:
             continue
 
         fields = {}
@@ -202,19 +211,25 @@ def extract_home_market_fields(html, market):
 
 
 def build_record(market):
-    html = fetch_page(market["url"])
-    fields = extract_fields(html, market)
+    # TGJU's homepage contains the live market tables. Prefer it for the
+    # current quote/change fields; profile pages can be stale in CI runners.
+    home_html = fetch_page("https://www.tgju.org/home")
+    home_fields = extract_home_market_fields(home_html, market)
+
+    profile_fields = {}
+    try:
+        profile_html = fetch_page(market["url"])
+        profile_fields = extract_fields(profile_html, market)
+    except Exception as exc:
+        print(f"  profile fetch skipped for {market['symbol']}: {exc}")
+
+    fields = dict(profile_fields)
+    for key, value in home_fields.items():
+        if value not in (None, ""):
+            fields[key] = value
 
     if "last_price" not in fields:
-        print(f"  profile quote not found; using TGJU homepage fallback for {market['symbol']}")
-        home_html = fetch_page("https://www.tgju.org/home")
-        home_fields = extract_home_market_fields(home_html, market)
-        for key, value in home_fields.items():
-            if value not in (None, ""):
-                fields.setdefault(key, value)
-
-    if "last_price" not in fields:
-        raise RuntimeError(f"TGJU {market['symbol']}: current price was not found at {market['url']}")
+        raise RuntimeError(f"TGJU {market['symbol']}: current price was not found on TGJU homepage/profile")
 
     now_utc = datetime.now(timezone.utc)
     now_tehran = now_utc.astimezone(ZoneInfo("Asia/Tehran"))
