@@ -3,7 +3,8 @@ import json
 import os
 import re
 from datetime import datetime, timezone
-from html import HTMLParser, unescape
+from html.parser import HTMLParser
+from html import unescape
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
 
@@ -108,8 +109,6 @@ def extract_fields(html):
             if label == key or label.startswith(key):
                 fields[field] = clean_value(value)
 
-    # TGJU pages are not completely uniform. Some market pages expose
-    # the key values outside HTML tables, so use a text fallback.
     if "last_price" not in fields or "yesterday_price" not in fields:
         text = unescape(re.sub(r"<[^>]+>", " ", html))
         text = " ".join(text.split())
