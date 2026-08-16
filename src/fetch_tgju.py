@@ -128,12 +128,13 @@ def extract_fields(html, market=None):
 
     text = extract_plain_text(html)
 
-    # TGJU may render the label with one, two, or several colons.
+    # TGJU may render the labels as plain text with one, two, or no literal
+    # colon characters, depending on the page/template version.
     numeric_patterns = {
-        "last_price": r"نرخ\s*فعلی\s*:+\s*([0-9][0-9,٬]*)",
-        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*:+\s*([0-9][0-9,٬]*)",
-        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([0-9]+(?:[.,][0-9]+)?)\s*%?",
-        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([0-9][0-9,٬]*)",
+        "last_price": r"نرخ\s*فعلی\s*[:：]*\s*([0-9][0-9,٬]*)",
+        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*[:：]*\s*([0-9][0-9,٬]*)",
+        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：]*\s*([0-9]+(?:[.,][0-9]+)?)\s*%?",
+        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：]*\s*([0-9][0-9,٬]*)",
     }
 
     for field, pattern in numeric_patterns.items():
@@ -141,28 +142,30 @@ def extract_fields(html, market=None):
         if match:
             fields[field] = clean_value(match.group(1))
 
-    # Very broad fallback: find the first number after the current-rate label.
+    # Robust fallback for TGJU quote headers such as:
+    # "نرخ فعلی:: 945,000,000 1.59"
+    # The old parser was too dependent on the exact number of colons.
     if "last_price" not in fields:
-        match = re.search(r"نرخ\s*فعلی.*?([0-9][0-9,٬]*)", text, flags=re.I)
+        match = re.search(
+            r"نرخ\s*فعلی\D*([0-9][0-9,٬]*)",
+            text,
+            flags=re.I,
+        )
         if match:
             fields["last_price"] = clean_value(match.group(1))
 
-    # Some TGJU pages expose the current value in the natural-language report
-    # section even when the main quote block is not parsed by the HTML table parser.
-    # Example: "در حال حاضر قیمت هر نیم سکه 945,000,000 ریال می باشد".
-    if "last_price" not in fields and market:
-        asset = re.escape(market["name"])
-        report_patterns = [
-            rf"در\s*حال\s*حاضر\s*قیمت\s*(?:هر\s*)?{asset}.*?([0-9][0-9,٬]*)\s*ریال",
-            rf"قیمت\s*{asset}.*?([0-9][0-9,٬]*)\s*ریال",
-        ]
-        for pattern in report_patterns:
-            match = re.search(pattern, text, flags=re.I)
-            if match:
-                fields["last_price"] = clean_value(match.group(1))
-                break
+    # Final page-template fallback: locate the first current-rate occurrence
+    # and inspect a short window after it. This avoids depending on HTML table
+    # structure, which TGJU changes from time to time.
+    if "last_price" not in fields:
+        marker = re.search(r"نرخ\s*فعلی", text, flags=re.I)
+        if marker:
+            window = text[marker.end():marker.end() + 120]
+            number = re.search(r"([0-9][0-9,٬]{4,})", window)
+            if number:
+                fields["last_price"] = clean_value(number.group(1))
 
-    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*:+\s*([0-9۰-۹٠-٩:]+)", text)
+    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*[:：]*\s*([0-9:]+)", text)
     if update_match:
         fields["last_update"] = clean_value(update_match.group(1))
 
