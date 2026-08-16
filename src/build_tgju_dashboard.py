@@ -31,7 +31,16 @@ def main():
         writer = csv.DictWriter(file, fieldnames=fields)
         writer.writeheader()
         for row in rows:
-            writer.writerow({field: row.get(field, "") for field in fields})
+            writer.writerow({
+                "symbol": row.get("symbol", ""),
+                "asset_name": row.get("asset_name", ""),
+                "price": row.get("last_price", ""),
+                "price_change": row.get("price_change", ""),
+                "price_change_percent": row.get("price_change_percent", ""),
+                "last_update": row.get("source_last_update", ""),
+                "collected_at_tehran": row.get("collected_at_tehran", ""),
+                "source": row.get("source", ""),
+            })
 
     print(f"TGJU dashboard output updated: {DASHBOARD_FILE} ({len(rows)} assets)")
 
