@@ -82,9 +82,25 @@ def to_number(value):
 
 
 def fetch_page(url):
-    request = Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; price-monitor/1.0)"})
+    request = Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "fa-IR,fa;q=0.9,en;q=0.8",
+        },
+    )
     with urlopen(request, timeout=30) as response:
         return response.read().decode("utf-8", errors="replace")
+
+
+def extract_plain_text(html):
+    text = re.sub(r"<script\b[^>]*>.*?</script>", " ", html, flags=re.I | re.S)
+    text = re.sub(r"<style\b[^>]*>.*?</style>", " ", text, flags=re.I | re.S)
+    text = unescape(re.sub(r"<[^>]+>", " ", text))
+    text = normalize_digits(text)
+    text = text.replace("\xa0", " ")
+    return " ".join(text.split())
 
 
 def extract_fields(html):
@@ -109,21 +125,25 @@ def extract_fields(html):
             if label == key or label.startswith(key):
                 fields[field] = clean_value(value)
 
-    if "last_price" not in fields or "yesterday_price" not in fields:
-        text = unescape(re.sub(r"<[^>]+>", " ", html))
-        text = " ".join(text.split())
-        fallback_patterns = {
-            "last_price": r"نرخ\s*فعلی\s*:+\s*([۰-۹٠-٩0-9][۰-۹٠-٩0-9,٬]*)",
-            "yesterday_price": r"نرخ\s*روز\s*گذشته\s*:+\s*([۰-۹٠-٩0-9][۰-۹٠-٩0-9,٬]*)",
-            "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([۰-۹٠-٩0-9.,٬]+)\s*%?",
-            "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([۰-۹٠-٩0-9,٬]+)",
-            "last_update": r"زمان\s*ثبت\s*آخرین\s*نرخ\s*:+\s*([^|]{1,30})",
-        }
-        for field, pattern in fallback_patterns.items():
-            if field not in fields:
-                match = re.search(pattern, text)
-                if match:
-                    fields[field] = clean_value(match.group(1))
+    # TGJU pages do not all expose the same HTML table structure.
+    # Use the rendered page text as a robust fallback, especially for coin pages.
+    text = extract_plain_text(html)
+
+    numeric_patterns = {
+        "last_price": r"نرخ\s*فعلی\s*: *([0-9][0-9,٬]*)",
+        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*: *([0-9][0-9,٬]*)",
+        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*: *([0-9]+(?:[.,][0-9]+)?)\s*%?",
+        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*: *([0-9][0-9,٬]*)",
+    }
+
+    for field, pattern in numeric_patterns.items():
+        match = re.search(pattern, text)
+        if match:
+            fields[field] = clean_value(match.group(1))
+
+    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*: *([0-9۰-۹٠-٩:]+)", text)
+    if update_match:
+        fields["last_update"] = clean_value(update_match.group(1))
 
     return fields
 
