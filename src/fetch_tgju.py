@@ -128,11 +128,14 @@ def extract_fields(html, market=None):
 
     text = extract_plain_text(html)
 
+    # TGJU can return signed changes (for example -5,000 or -0.27%).
+    # The previous parser accepted only unsigned numbers, which caused the
+    # change columns to become empty whenever the market moved down.
     numeric_patterns = {
         "last_price": r"نرخ\s*فعلی\s*[:：]*\s*([0-9][0-9,٬]*)",
-        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*[:：]*\s*([0-9][0-9,٬]*)",
-        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：]*\s*([0-9]+(?:[.,][0-9]+)?)\s*%?",
-        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：]*\s*([0-9][0-9,٬]*)",
+        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*[:：|]*\s*([0-9][0-9,٬]*)",
+        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：|]*\s*([+-]?[0-9]+(?:[.,][0-9]+)?)\s*%?",
+        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：|]*\s*([+-]?[0-9][0-9,٬]*)",
     }
 
     for field, pattern in numeric_patterns.items():
@@ -153,9 +156,24 @@ def extract_fields(html, market=None):
             if number:
                 fields["last_price"] = clean_value(number.group(1))
 
-    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*[:：]*\s*([0-9:]+)", text)
+    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*[:：]*\s*([0-9]{1,2}:[0-9]{2}:[0-9]{2})", text)
     if update_match:
         fields["last_update"] = clean_value(update_match.group(1))
+
+    # If TGJU exposes yesterday's price but omits the explicit change fields,
+    # calculate them from the two prices so the dashboard never loses these
+    # columns just because the page layout changed.
+    if "price_change" not in fields:
+        current = to_number(fields.get("last_price"))
+        yesterday = to_number(fields.get("yesterday_price"))
+        if current is not None and yesterday is not None:
+            fields["price_change"] = str(current - yesterday)
+
+    if "price_change_percent" not in fields:
+        current = to_number(fields.get("last_price"))
+        yesterday = to_number(fields.get("yesterday_price"))
+        if current is not None and yesterday not in (None, 0):
+            fields["price_change_percent"] = str(round(((current - yesterday) / yesterday) * 100, 4))
 
     return fields
 
@@ -179,7 +197,7 @@ def extract_home_market_fields(html, market):
         if len(row) >= 3:
             change_text = clean_value(row[2])
             pct = re.search(r"\(([+-]?[0-9]+(?:\.[0-9]+)?)%\)", change_text)
-            amount = re.search(r"([0-9][0-9,٬]*)\s*$", change_text)
+            amount = re.search(r"([+-]?[0-9][0-9,٬]*)\s*$", change_text)
             if pct:
                 fields["price_change_percent"] = pct.group(1)
             if amount:
