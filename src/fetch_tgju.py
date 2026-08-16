@@ -126,15 +126,16 @@ def extract_fields(html):
                 fields[field] = clean_value(value)
 
     # TGJU pages do not all expose the same HTML table structure.
-    # Use the rendered page text as a robust fallback, especially for coin pages.
+    # Use rendered page text as a fallback, especially for coin pages.
     text = extract_plain_text(html)
 
+    # The current TGJU page may render the label as "نرخ فعلی::",
+    # "نرخ فعلی:", or with no colon at all.  Do not require a colon.
     numeric_patterns = {
-        # TGJU currently renders this label as "نرخ فعلی::" on some pages.
-        "last_price": r"نرخ\s*فعلی\s*:+\s*([0-9][0-9,٬]*)",
-        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*:+\s*([0-9][0-9,٬]*)",
-        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([0-9]+(?:[.,][0-9]+)?)\s*%?",
-        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*:+\s*([0-9][0-9,٬]*)",
+        "last_price": r"نرخ\s*فعلی\s*[:：]*\s*([0-9][0-9,٬]*)",
+        "yesterday_price": r"نرخ\s*روز\s*گذشته\s*[:：]*\s*([0-9][0-9,٬]*)",
+        "price_change_percent": r"درصد\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：]*\s*([0-9]+(?:[.,][0-9]+)?)\s*%?",
+        "price_change": r"میزان\s*تغییر\s*نسبت\s*به\s*روز\s*گذشته\s*[:：]*\s*([0-9][0-9,٬]*)",
     }
 
     for field, pattern in numeric_patterns.items():
@@ -142,7 +143,7 @@ def extract_fields(html):
         if match:
             fields[field] = clean_value(match.group(1))
 
-    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*:+\s*([0-9۰-۹٠-٩:]+)", text)
+    update_match = re.search(r"زمان\s*ثبت\s*آخرین\s*نرخ\s*[:：]*\s*([0-9۰-۹٠-٩:]+)", text)
     if update_match:
         fields["last_update"] = clean_value(update_match.group(1))
 
