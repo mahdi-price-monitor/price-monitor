@@ -1,38 +1,48 @@
-name: Test TGJU Market Prices
+name: Update TGJU Market Prices
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 7 * * *"
+    - cron: "30 11 * * *"
+    - cron: "30 15 * * *"
 
 permissions:
   contents: write
 
 jobs:
-  test-tgju:
+  update-tgju:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout TGJU branch
         uses: actions/checkout@v5
+        with:
+          ref: tgju-market
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.x"
 
-      - name: Get dollar price from TGJU
+      - name: Get market prices from TGJU
         run: |
           python src/fetch_tgju.py
 
-      - name: Save TGJU test data
+      - name: Build TGJU dashboard output
+        run: |
+          python src/build_tgju_dashboard.py
+
+      - name: Save updated TGJU data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add data/tgju_latest.json data/tgju_history.csv
+          git add data/tgju_market_latest.csv data/tgju_market_latest.json data/tgju_market_history.csv data/tgju_dashboard.csv
 
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Test TGJU dollar price"
-            git push
+            git commit -m "Update TGJU market prices"
+            git push origin HEAD:tgju-market
           fi
