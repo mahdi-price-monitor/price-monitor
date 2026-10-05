@@ -1,60 +1,60 @@
 {
-  "collected_at": "2026-10-05T19:41:55.521803+00:00",
+  "collected_at": "2026-10-05T22:08:01.999084+00:00",
   "source": "navasan",
   "prices": {
     "usd_sell": {
       "value": "269500",
-      "change": 300,
+      "change": 0,
       "timestamp": 1791221450,
       "date": "1405-07-13 21:00:50"
     },
     "gold_18k": {
       "value": "26778710",
-      "change": 334740,
-      "timestamp": 1791229213,
-      "date": "1405-07-13 23:10:13"
+      "change": 0,
+      "timestamp": 1791237615,
+      "date": "1405-07-14 01:30:15"
     },
     "xau": {
       "value": "1113237130",
-      "change": -1466230,
+      "change": -2226070,
       "timestamp": 1791221450,
       "date": "1405-07-13 21:00:50"
     },
     "sekkeh": {
       "value": "273000",
-      "change": 2000,
-      "timestamp": 1791229213,
-      "date": "1405-07-13 23:10:13"
+      "change": 0,
+      "timestamp": 1791237615,
+      "date": "1405-07-14 01:30:15"
     },
     "bahar": {
       "value": "261000",
-      "change": 1000,
-      "timestamp": 1791229213,
-      "date": "1405-07-13 23:10:13"
+      "change": 0,
+      "timestamp": 1791237615,
+      "date": "1405-07-14 01:30:15"
     },
     "nim": {
       "value": "143000",
-      "change": 1000,
-      "timestamp": 1791229213,
-      "date": "1405-07-13 23:10:13"
+      "change": 0,
+      "timestamp": 1791237615,
+      "date": "1405-07-14 01:30:15"
     },
     "rob": {
       "value": "79000",
-      "change": 1500,
-      "timestamp": 1791229213,
-      "date": "1405-07-13 23:10:13"
+      "change": 0,
+      "timestamp": 1791237615,
+      "date": "1405-07-14 01:30:15"
     },
     "gerami": {
       "value": "38000",
       "change": 0,
-      "timestamp": 1791229213,
-      "date": "1405-07-13 23:10:13"
+      "timestamp": 1791237615,
+      "date": "1405-07-14 01:30:15"
     },
     "abshodeh": {
       "value": "116000",
-      "change": 1450,
-      "timestamp": 1791229213,
-      "date": "1405-07-13 23:10:13"
+      "change": 0,
+      "timestamp": 1791237615,
+      "date": "1405-07-14 01:30:15"
     }
   }
 }
