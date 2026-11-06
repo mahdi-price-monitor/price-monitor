@@ -1,21 +1,21 @@
 [
   {
-    "collected_at_utc": "2026-11-06T15:14:48.988930+00:00",
-    "collected_at_tehran": "2026-11-06T18:44:48.988930+03:30",
+    "collected_at_utc": "2026-11-06T18:11:08.113468+00:00",
+    "collected_at_tehran": "2026-11-06T21:41:08.113468+03:30",
     "source": "tgju",
     "symbol": "usd",
     "asset_name": "دلار",
     "market": "free",
     "last_price": 2669000,
-    "yesterday_price": 2689000,
+    "yesterday_price": 2669000,
     "price_change": 0,
     "price_change_percent": 0,
     "source_last_update": "14 آبان",
     "source_url": "https://www.tgju.org/profile/price_dollar_rl"
   },
   {
-    "collected_at_utc": "2026-11-06T15:14:53.854489+00:00",
-    "collected_at_tehran": "2026-11-06T18:44:53.854489+03:30",
+    "collected_at_utc": "2026-11-06T18:11:13.847546+00:00",
+    "collected_at_tehran": "2026-11-06T21:41:13.847546+03:30",
     "source": "tgju",
     "symbol": "gold18",
     "asset_name": "طلای 18 عیار",
@@ -28,8 +28,8 @@
     "source_url": "https://www.tgju.org/profile/geram18"
   },
   {
-    "collected_at_utc": "2026-11-06T15:14:58.459235+00:00",
-    "collected_at_tehran": "2026-11-06T18:44:58.459235+03:30",
+    "collected_at_utc": "2026-11-06T18:11:18.380936+00:00",
+    "collected_at_tehran": "2026-11-06T21:41:18.380936+03:30",
     "source": "tgju",
     "symbol": "sekee",
     "asset_name": "سکه امامی",
@@ -42,8 +42,8 @@
     "source_url": "https://www.tgju.org/profile/sekee"
   },
   {
-    "collected_at_utc": "2026-11-06T15:15:03.978812+00:00",
-    "collected_at_tehran": "2026-11-06T18:45:03.978812+03:30",
+    "collected_at_utc": "2026-11-06T18:11:23.789608+00:00",
+    "collected_at_tehran": "2026-11-06T21:41:23.789608+03:30",
     "source": "tgju",
     "symbol": "sekeb",
     "asset_name": "سکه بهار آزادی",
@@ -56,8 +56,8 @@
     "source_url": "https://www.tgju.org/profile/sekeb"
   },
   {
-    "collected_at_utc": "2026-11-06T15:15:08.700395+00:00",
-    "collected_at_tehran": "2026-11-06T18:45:08.700395+03:30",
+    "collected_at_utc": "2026-11-06T18:11:27.701275+00:00",
+    "collected_at_tehran": "2026-11-06T21:41:27.701275+03:30",
     "source": "tgju",
     "symbol": "nim",
     "asset_name": "نیم سکه",
@@ -70,8 +70,8 @@
     "source_url": "https://www.tgju.org/profile/nim"
   },
   {
-    "collected_at_utc": "2026-11-06T15:15:12.957916+00:00",
-    "collected_at_tehran": "2026-11-06T18:45:12.957916+03:30",
+    "collected_at_utc": "2026-11-06T18:11:32.690042+00:00",
+    "collected_at_tehran": "2026-11-06T21:41:32.690042+03:30",
     "source": "tgju",
     "symbol": "rob",
     "asset_name": "ربع سکه",
@@ -84,8 +84,8 @@
     "source_url": "https://www.tgju.org/profile/rob"
   },
   {
-    "collected_at_utc": "2026-11-06T15:15:18.278497+00:00",
-    "collected_at_tehran": "2026-11-06T18:45:18.278497+03:30",
+    "collected_at_utc": "2026-11-06T18:11:36.647991+00:00",
+    "collected_at_tehran": "2026-11-06T21:41:36.647991+03:30",
     "source": "tgju",
     "symbol": "gerami",
     "asset_name": "سکه گرمی",
