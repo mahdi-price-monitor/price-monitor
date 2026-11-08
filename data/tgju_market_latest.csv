@@ -1,8 +1,8 @@
 ﻿collected_at_utc,collected_at_tehran,source,symbol,asset_name,market,last_price,yesterday_price,price_change,price_change_percent,source_last_update,source_url
-2026-11-08T17:10:12.947986+00:00,2026-11-08T20:40:12.947986+03:30,tgju,usd,دلار,free,2661100,2661100,0,0,16 آبان,https://www.tgju.org/profile/price_dollar_rl
-2026-11-08T17:10:18.467686+00:00,2026-11-08T20:40:18.467686+03:30,tgju,gold18,طلای 18 عیار,domestic,255940000,255940000,0,0,16 آبان,https://www.tgju.org/profile/geram18
-2026-11-08T17:10:25.479537+00:00,2026-11-08T20:40:25.479537+03:30,tgju,sekee,سکه امامی,domestic,2588150000,2588150000,0,0,16 آبان,https://www.tgju.org/profile/sekee
-2026-11-08T17:10:30.828189+00:00,2026-11-08T20:40:30.828189+03:30,tgju,sekeb,سکه بهار آزادی,domestic,2511800000,2511800000,0,0,16 آبان,https://www.tgju.org/profile/sekeb
-2026-11-08T17:10:36.133055+00:00,2026-11-08T20:40:36.133055+03:30,tgju,nim,نیم سکه,domestic,1366700000,1366700000,0,0,16 آبان,https://www.tgju.org/profile/nim
-2026-11-08T17:10:40.970241+00:00,2026-11-08T20:40:40.970241+03:30,tgju,rob,ربع سکه,domestic,725000000,725000000,0,0,16 آبان,https://www.tgju.org/profile/rob
-2026-11-08T17:10:47.130104+00:00,2026-11-08T20:40:47.130104+03:30,tgju,gerami,سکه گرمی,domestic,370000000,370000000,0,0,16 آبان,https://www.tgju.org/profile/gerami
+2026-11-08T19:47:59.070859+00:00,2026-11-08T23:17:59.070859+03:30,tgju,usd,دلار,free,2661100,2661100,0,0,16 آبان,https://www.tgju.org/profile/price_dollar_rl
+2026-11-08T19:48:03.719080+00:00,2026-11-08T23:18:03.719080+03:30,tgju,gold18,طلای 18 عیار,domestic,255940000,255940000,0,0,16 آبان,https://www.tgju.org/profile/geram18
+2026-11-08T19:48:08.071710+00:00,2026-11-08T23:18:08.071710+03:30,tgju,sekee,سکه امامی,domestic,2588150000,2588150000,0,0,16 آبان,https://www.tgju.org/profile/sekee
+2026-11-08T19:48:11.826754+00:00,2026-11-08T23:18:11.826754+03:30,tgju,sekeb,سکه بهار آزادی,domestic,2511800000,2511800000,0,0,16 آبان,https://www.tgju.org/profile/sekeb
+2026-11-08T19:48:16.583471+00:00,2026-11-08T23:18:16.583471+03:30,tgju,nim,نیم سکه,domestic,1366700000,1366700000,0,0,16 آبان,https://www.tgju.org/profile/nim
+2026-11-08T19:48:20.802243+00:00,2026-11-08T23:18:20.802243+03:30,tgju,rob,ربع سکه,domestic,725000000,725000000,0,0,16 آبان,https://www.tgju.org/profile/rob
+2026-11-08T19:48:25.280199+00:00,2026-11-08T23:18:25.280199+03:30,tgju,gerami,سکه گرمی,domestic,370000000,370000000,0,0,16 آبان,https://www.tgju.org/profile/gerami
