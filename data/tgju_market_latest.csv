@@ -1,8 +1,8 @@
 ﻿collected_at_utc,collected_at_tehran,source,symbol,asset_name,market,last_price,yesterday_price,price_change,price_change_percent,source_last_update,source_url
-2026-11-14T17:14:43.425926+00:00,2026-11-14T20:44:43.425926+03:30,tgju,usd,دلار,free,2699000,2669000,30000,1.12,19:59:58,https://www.tgju.org/profile/price_dollar_rl
-2026-11-14T17:14:46.142837+00:00,2026-11-14T20:44:46.142837+03:30,tgju,gold18,طلای 18 عیار,domestic,247945000,250388000,2443000,0.99,19:59:58,https://www.tgju.org/profile/geram18
-2026-11-14T17:14:49.461978+00:00,2026-11-14T20:44:49.461978+03:30,tgju,sekee,سکه امامی,domestic,2525150000,2539650000,14500000,0.57,19:59:58,https://www.tgju.org/profile/sekee
-2026-11-14T17:14:55.007509+00:00,2026-11-14T20:44:55.007509+03:30,tgju,sekeb,سکه بهار آزادی,domestic,2450800000,2470450000,19650000,0.8,19:59:55,https://www.tgju.org/profile/sekeb
-2026-11-14T17:14:57.585621+00:00,2026-11-14T20:44:57.585621+03:30,tgju,nim,نیم سکه,domestic,1328600000,1331900000,3300000,0.25,18:03:34,https://www.tgju.org/profile/nim
-2026-11-14T17:15:00.348472+00:00,2026-11-14T20:45:00.348472+03:30,tgju,rob,ربع سکه,domestic,724700000,724900000,200000,0.03,17:12:14,https://www.tgju.org/profile/rob
-2026-11-14T17:15:03.128266+00:00,2026-11-14T20:45:03.128266+03:30,tgju,gerami,سکه گرمی,domestic,370000000,370000000,0,0,11:25:46,https://www.tgju.org/profile/gerami
+2026-11-14T19:58:50.217389+00:00,2026-11-14T23:28:50.217389+03:30,tgju,usd,دلار,free,2699000,2669000,30000,1.12,19:59:58,https://www.tgju.org/profile/price_dollar_rl
+2026-11-14T19:58:53.391844+00:00,2026-11-14T23:28:53.391844+03:30,tgju,gold18,طلای 18 عیار,domestic,247945000,250388000,2443000,0.99,19:59:58,https://www.tgju.org/profile/geram18
+2026-11-14T19:58:56.260772+00:00,2026-11-14T23:28:56.260772+03:30,tgju,sekee,سکه امامی,domestic,2525150000,2539650000,14500000,0.57,19:59:58,https://www.tgju.org/profile/sekee
+2026-11-14T19:58:59.134825+00:00,2026-11-14T23:28:59.134825+03:30,tgju,sekeb,سکه بهار آزادی,domestic,2450800000,2470450000,19650000,0.8,19:59:55,https://www.tgju.org/profile/sekeb
+2026-11-14T19:59:02.328576+00:00,2026-11-14T23:29:02.328576+03:30,tgju,nim,نیم سکه,domestic,1328600000,1331900000,3300000,0.25,18:03:34,https://www.tgju.org/profile/nim
+2026-11-14T19:59:04.902809+00:00,2026-11-14T23:29:04.902809+03:30,tgju,rob,ربع سکه,domestic,724700000,724900000,200000,0.03,17:12:14,https://www.tgju.org/profile/rob
+2026-11-14T19:59:07.308959+00:00,2026-11-14T23:29:07.308959+03:30,tgju,gerami,سکه گرمی,domestic,370000000,370000000,0,0,11:25:46,https://www.tgju.org/profile/gerami
